@@ -21,8 +21,8 @@ const users = [
 ];
 
 const siteConfig = {
-  title: 'Test Site', // Title for your website.
-  tagline: 'A website for testing',
+  title: 'Massimiliano Ziccardi', // Title for your website.
+  tagline: 'Massimiliano Ziccardi home page',
   url: 'https://ziccardi.github.io', // Your website URL
   baseUrl: '/', // Base URL for your project */
   organizationName: 'ziccardi',
@@ -39,24 +39,22 @@ const siteConfig = {
 
   // For no header links in the top nav bar -> headerLinks: [],
   headerLinks: [
-    {doc: 'doc1', label: 'Docs'},
-    {doc: 'doc4', label: 'API'},
-    {page: 'help', label: 'Help'},
-    {blog: true, label: 'Blog'},
+    {label: 'LinkedIn', href: 'https://www.linkedin.com/in/ziccardim/'},
+    {label: 'GitHUB', href: 'https://www.github.com/ziccardi'},
   ],
 
   // If you have users set above, you add it here:
   users,
 
   /* path to images for header/footer */
-  headerIcon: 'img/favicon.ico',
-  footerIcon: 'img/favicon.ico',
+  headerIcon: '',
+  footerIcon: '',
   favicon: 'img/favicon.ico',
 
   /* Colors for website */
   colors: {
-    primaryColor: '#948d76',
-    secondaryColor: '#676252',
+    primaryColor: '#1981BE',
+    secondaryColor: '#81BED7',
   },
 
   /* Custom fonts for website */
@@ -74,7 +72,7 @@ const siteConfig = {
   */
 
   // This copyright info is used in /core/Footer.js and blog RSS/Atom feeds.
-  copyright: `Copyright © ${new Date().getFullYear()} Your Name or Your Company Name`,
+  copyright: `Copyright © ${new Date().getFullYear()} Massimiliano Ziccardi`,
 
   highlight: {
     // Highlight.js theme to use for syntax highlighting in code blocks.
