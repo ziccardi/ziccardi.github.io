@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><title>NRPE Protocol · Massimiliano Ziccardi</title><meta name="viewport" content="width=device-width"/><meta name="generator" content="Docusaurus"/><meta name="description" content="This document tries to describe the **NRPE Protocol** as reverse engineered while writing JNRPE. A big help has arrived"/><meta name="docsearch:language" content="en"/><meta property="og:title" content="NRPE Protocol · Massimiliano Ziccardi"/><meta property="og:type" content="website"/><meta property="og:url" content="https://ziccardi.github.io/"/><meta property="og:description" content="This document tries to describe the **NRPE Protocol** as reverse engineered while writing JNRPE. A big help has arrived"/><meta property="og:image" content="https://ziccardi.github.io/img/undraw_online.svg"/><meta name="twitter:card" content="summary"/><meta name="twitter:image" content="https://ziccardi.github.io/img/undraw_tweetstorm.svg"/><link rel="shortcut icon" href="/img/favicon.ico"/><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/dark.min.css"/><script type="text/javascript" src="https://buttons.github.io/buttons.js"></script><script src="/js/scrollSpy.js"></script><link rel="stylesheet" href="/css/main.css"/><script src="/js/codetabs.js"></script></head><body class="sideNavVisible separateOnPageNav"><div class="fixedHeaderContainer"><div class="headerWrapper wrapper"><header><a href="/"><h2 class="headerTitle">Massimiliano Ziccardi</h2></a><div class="navigationWrapper navigationSlider"><nav class="slidingNav"><ul class="nav-site nav-site-internal"><li class=""><a href="https://www.linkedin.com/in/ziccardim/" target="_self">LinkedIn</a></li><li class=""><a href="https://www.github.com/ziccardi" target="_self">GitHUB</a></li></ul></nav></div></header></div></div><div class="navPusher"><div class="docMainWrapper wrapper"><div class="docsNavContainer" id="docsNav"><nav class="toc"><div class="toggleNav"><section class="navWrapper wrapper"><div class="navBreadcrumb wrapper"><div class="navToggle" id="navToggler"><div class="hamburger-menu"><div class="line1"></div><div class="line2"></div><div class="line3"></div></div></div><h2><i>›</i><span>Overview</span></h2><div class="tocToggler" id="tocToggler"><i class="icon-toc"></i></div></div><div class="navGroups"><div class="navGroup"><h3 class="navGroupCategoryTitle">Overview</h3><ul class=""><li class="navListItem"><a class="navItem" href="/docs/nrpe/implementations">NRPE Implementations</a></li><li class="navListItem navListItemActive"><a class="navItem" href="/docs/nrpe/protocol">NRPE Protocol</a></li></ul></div></div></section></div><script>
+            var coll = document.getElementsByClassName('collapsible');
+            var checkActiveCategory = true;
+            for (var i = 0; i < coll.length; i++) {
+              var links = coll[i].nextElementSibling.getElementsByTagName('*');
+              if (checkActiveCategory){
+                for (var j = 0; j < links.length; j++) {
+                  if (links[j].classList.contains('navListItemActive')){
+                    coll[i].nextElementSibling.classList.toggle('hide');
+                    coll[i].childNodes[1].classList.toggle('rotate');
+                    checkActiveCategory = false;
+                    break;
+                  }
+                }
+              }
+
+              coll[i].addEventListener('click', function() {
+                var arrow = this.childNodes[1];
+                arrow.classList.toggle('rotate');
+                var content = this.nextElementSibling;
+                content.classList.toggle('hide');
+              });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+              createToggler('#navToggler', '#docsNav', 'docsSliderActive');
+              createToggler('#tocToggler', 'body', 'tocActive');
+
+              var headings = document.querySelector('.toc-headings');
+              headings && headings.addEventListener('click', function(event) {
+                var el = event.target;
+                while(el !== headings){
+                  if (el.tagName === 'A') {
+                    document.body.classList.remove('tocActive');
+                    break;
+                  } else{
+                    el = el.parentNode;
+                  }
+                }
+              }, false);
+
+              function createToggler(togglerSelector, targetSelector, className) {
+                var toggler = document.querySelector(togglerSelector);
+                var target = document.querySelector(targetSelector);
+
+                if (!toggler) {
+                  return;
+                }
+
+                toggler.onclick = function(event) {
+                  event.preventDefault();
+
+                  target.classList.toggle(className);
+                };
+              }
+            });
+        </script></nav></div><div class="container mainContainer docsContainer"><div class="wrapper"><div class="post"><header class="postHeader"><h1 id="__docusaurus" class="postHeaderTitle">NRPE Protocol</h1></header><article><div><span><p>This document tries to describe the <strong>NRPE Protocol</strong> as reverse engineered while writing JNRPE. A big help has arrived
+from the <a href="https://github.com/stockholmuniversity/Nagios-NRPE/blob/master/share/protocol-nrpe.md">NRPE Protocol Document</a>&quot;.</p>
+<h2><a class="anchor" aria-hidden="true" id="communication-flow"></a><a href="#communication-flow" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Communication flow</h2>
+<p>The communication is always initiated by <code>check_nrpe</code> and happens as follows:</p>
+<pre><code class="hljs">+------------+   Query             +----------+
+|            |--------------------&gt;|          |
+| check_nrpe |                     |   NRPE   |
+|            |&lt;--------------------|          |
++------------+   Response          +----------+
+</code></pre>
+<ol>
+<li><code>check_nrpe</code> sends a <strong>QUERY PACKET</strong> to NRPE</li>
+<li><code>NRPE</code> answers with a <strong>RESPONSE PACKET</strong></li>
+</ol>
+<p>The structure of both request and response packets is the same.</p>
+<p>As of today, NRPE supports 3 different protocol versions: 2, 3 and 4. Version 1 is not used anymore.</p>
+<h2><a class="anchor" aria-hidden="true" id="protocol-version-2"></a><a href="#protocol-version-2" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Protocol Version 2</h2>
+<p>When using protocol version 2, each frame has the same size and the structure looks like below:</p>
+<pre><code class="hljs">+-------------+---------+------+-------+------------+----------+------------+
+| BYTE        | 0     1 | 2  3 | 4   7 | 8        9 | 10  1034 | 1035  1036 |
++-------------+---------+------+-------+------------+----------+------------+
+| DESCRIPTION | VERSION | TYPE | CRC32 | RESULTCODE |  BUFFER  |  PADDING   |
++-------------+---------+------+-------+------------+----------+------------+
+</code></pre>
+<ul>
+<li><strong>VERSION</strong>: the protocol version. For protocol Version 2, it must be 2.</li>
+<li><strong>TYPE</strong>: the type of the packet:
+<ul>
+<li>1: Request Packet</li>
+<li>2: Response Packet</li>
+</ul></li>
+<li><strong>CRC32</strong>: used to validate the packet, is computed against the whole packet but the CRC itself, with must be replaced with 0 (4 bytes)</li>
+<li><strong>RESULTCODE</strong>: it has a meaning only when dealing with responses. If TYPE is REQUEST, its value is random, otherwise the value can be:
+<ul>
+<li>0: OK</li>
+<li>1: WARNING</li>
+<li>2: CRITICAL</li>
+<li>3: UNKNOWN</li>
+</ul></li>
+<li><strong>BUFFER</strong>:
+<ul>
+<li><p>When TYPE is REQUEST: the command to execute together with all the parameters. The parameters are separated between
+each other and from the command using an exclamation mark. For example,</p>
+<p><code>check_nrpe -c MYCHECK -a ARG1 ARG2 ARG3</code></p>
+<p>will be sent as</p>
+<p><code>MYCHECK!ARG1!ARG2!ARG3</code></p></li>
+<li><p>When TYPE is RESPONSE: the message returned by the check</p></li>
+</ul></li>
+<li><strong>PADDING</strong>: two random bytes</li>
+</ul>
+<h2><a class="anchor" aria-hidden="true" id="protocol-version-3"></a><a href="#protocol-version-3" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Protocol Version 3</h2>
+<p>Version 3 of the protocol is very similar to version 2, but the length of the buffer is now variable. Two new fields
+are added to the packet:</p>
+<ul>
+<li><strong>ALIGNMENT</strong>: this is always zero</li>
+<li><strong>BUFFERLENGTH</strong>: the length of the buffer</li>
+</ul>
+<pre><code class="hljs">+-------------+---------+------+-------+------------+-----------+--------------+----------+------------+
+| BYTE        | 0     1 | 2  3 | 4   7 | 8        9 | 10     11 | 12        15 | 16     ? | ?        ? |
++-------------+---------+------+-------+------------+-----------+--------------+----------+------------+
+| DESCRIPTION | VERSION | TYPE | CRC32 | RESULTCODE | ALIGNMENT | BUFFERLENGTH |  BUFFER  |  PADDING   |
++-------------+---------+------+-------+------------+-----------+--------------+----------+------------+
+</code></pre>
+<p>The padding starts right after the buffer and its length is <code>max(1020-BUFFERLENGTH, 0)</code></p>
+<ul>
+<li><strong>VERSION</strong>: the protocol version. For protocol Version 3, it must be 3.</li>
+<li><strong>TYPE</strong>: the type of the packet:
+<ul>
+<li>1: Request Packet</li>
+<li>2: Response Packet</li>
+</ul></li>
+<li><strong>CRC32</strong>: used to validate the packet, is computed against the whole packet but the CRC itself, with must be replaced with 0 (4 bytes)</li>
+<li><strong>RESULTCODE</strong>: it has a meaning only when dealing with responses. If TYPE is REQUEST, its value is ZERO, otherwise the value can be:
+<ul>
+<li>0: OK</li>
+<li>1: WARNING</li>
+<li>2: CRITICAL</li>
+<li>3: UNKNOWN</li>
+</ul></li>
+<li><strong>BUFFER</strong>:
+<ul>
+<li><p>When TYPE is REQUEST: the command to execute together with all the parameters. The parameters are separated between
+each other and from the command using an exclamation mark. For example,</p>
+<p><code>check_nrpe -c MYCHECK -a ARG1 ARG2 ARG3</code></p>
+<p>will be sent as</p>
+<p><code>MYCHECK!ARG1!ARG2!ARG3</code></p></li>
+<li><p>When TYPE is RESPONSE: the message returned by the check</p></li>
+</ul></li>
+<li><strong>PADDING</strong>: a number of '0' bytes</li>
+</ul>
+<h2><a class="anchor" aria-hidden="true" id="protocol-version-4"></a><a href="#protocol-version-4" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Protocol Version 4</h2>
+<p>As I've been able to analise, looks like protocol V4 is totally identical to protocol V3, with the exception of the
+VERSION field, whose value must be 4.
+I believe this can be due to the fact that Protocol V3 is not really supported anymore
+(see <a href="https://github.com/NagiosEnterprises/nrpe/issues/233#issuecomment-597726617">here</a>).</p>
+</span></div></article></div><div class="docs-prevnext"><a class="docs-prev button" href="/docs/nrpe/implementations"><span class="arrow-prev">← </span><span>NRPE Implementations</span></a></div></div></div><nav class="onPageNav"><ul class="toc-headings"><li><a href="#communication-flow">Communication flow</a></li><li><a href="#protocol-version-2">Protocol Version 2</a></li><li><a href="#protocol-version-3">Protocol Version 3</a></li><li><a href="#protocol-version-4">Protocol Version 4</a></li></ul></nav></div><footer class="nav-footer" id="footer"><section class="copyright">Copyright © 2020 Massimiliano Ziccardi</section></footer></div></body></html>
