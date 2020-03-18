@@ -20,6 +20,12 @@
       },
       "doc5": {
         "title": "Fifth Document"
+      },
+      "nrpe/implementations": {
+        "title": "NRPE Implementations"
+      },
+      "nrpe/protocol": {
+        "title": "NRPE Protocol"
       }
     },
     "links": {
@@ -27,9 +33,7 @@
       "GitHUB": "GitHUB"
     },
     "categories": {
-      "Docusaurus": "Docusaurus",
-      "First Category": "First Category",
-      "Second Category": "Second Category"
+      "Overview": "Overview"
     }
   },
   "pages-strings": {
